@@ -37,5 +37,6 @@ Este projeto contém a arquitetura dockerizada do GenieACS e do Simulador de mod
 
 ## Documentação e Relatórios
 Consulte os arquivos `.md` na raiz deste projeto para entender melhor a plataforma:
+- `documentacao_arquitetura.md`: Documentação geral mapeando a topologia do projeto, portas, containers e descrição dos arquivos internos sensíveis da plataforma.
 - `manual_genieacs.md`: Explicação completa de como utilizar cada aba e a arquitetura do projeto.
 - `relatorio_erros.md`: Relatório dos problemas resolvidos durante a construção da arquitetura em Docker.
