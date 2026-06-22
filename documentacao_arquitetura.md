@@ -36,6 +36,11 @@ A "porta de entrada" do projeto no GitHub. Contém o manual rápido de como um n
 Contém o repositório principal e o motor do servidor GenieACS (escrito em TypeScript/Node.js).
 **Modificações:** Nós adicionamos um `Dockerfile` customizado na raiz desta pasta. Para evitar quebras por falta de bibliotecas do sistema operacional necessárias pelas dependências do projeto, nosso Dockerfile orienta o container a ser construído em cima de uma imagem Linux robusta baseada no Debian (`node:22-bullseye-slim`). É a partir desta pasta que os serviços `cwmp`, `nbi`, `fs` e `ui` são gerados e colocados no ar.
 
+**Arquivos Internos Importantes:**
+* `AGENTS.md`: Um "Guia de Bolso" voltado para Inteligências Artificiais e novos desenvolvedores. Ele resume as regras de compilação, o mapa das pastas e avisa sobre as partes sensíveis do sistema.
+* `ARCHITECTURE.md`: O documento de design profundo do software. Explica a linguagem interna de expressões, a máquina de estados, as 14 tabelas do banco de dados e como a *Sandbox* isola os scripts para a segurança do servidor Ubuntu.
+* `CHANGELOG.md`: O "Diário de Bordo" (Histórico de Lançamentos) do projeto. Registra minuciosamente todas as novas funcionalidades, correção de bugs e alertas de segurança lançados a cada versão oficial do GenieACS.
+
 ### 📁 `/genieacs-sim`
 Contém o simulador de modems. Trata-se de uma aplicação independente que cria roteadores virtuais (ex: Huawei BM632w) e os faz conversar com o nosso servidor principal, simulando um ambiente real.
 **Modificações:** Esta pasta também possui seu próprio `Dockerfile` customizado para o simulador, além de um script embutido no `docker-compose.yml` (`command: ["./simulator", "http://cwmp:7547/"]`) que o instrui a disparar conexões contra a porta interna do serviço `cwmp`, permitindo que validemos todas as lógicas do provedor antes de plugar um roteador físico na rede.
