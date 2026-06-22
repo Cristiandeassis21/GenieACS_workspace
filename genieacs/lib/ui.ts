@@ -1,0 +1,328 @@
+import { constants } from "node:zlib";
+import Koa from "koa";
+import Router from "@koa/router";
+import * as jwt from "jsonwebtoken";
+import koaSend from "koa-send";
+import koaCompress from "koa-compress";
+import koaBodyParser from "@koa/bodyparser";
+import koaJwt from "koa-jwt";
+import * as config from "./config.ts";
+import api from "./ui/api.ts";
+import Authorizer from "./common/authorizer.ts";
+import * as logger from "./logger.ts";
+import * as localCache from "./ui/local-cache.ts";
+import { PermissionSet } from "./types.ts";
+import { authLocal } from "./api-functions.ts";
+import * as init from "./init.ts";
+import { version as VERSION } from "../package.json";
+import memoize from "./common/memoize.ts";
+import { APP_JS, APP_CSS, FAVICON_PNG } from "../build/assets.ts";
+import { matchRoute } from "../ui/router.ts";
+
+const koa = new Koa();
+const router = new Router();
+
+const JWT_SECRET = "" + config.get("UI_JWT_SECRET");
+const JWT_COOKIE = "genieacs-ui-jwt";
+
+interface TokenPayload {
+  authMethod: string;
+  username: string;
+}
+
+const getAuthorizer = memoize(
+  (snapshot: string, rolesStr: string): Authorizer => {
+    const roles: string[] = JSON.parse(rolesStr);
+    const allPermissions = localCache.getPermissions(snapshot);
+    const permissionSets: PermissionSet[] = roles.map((r) =>
+      Object.values(allPermissions[r] || {}),
+    );
+    return new Authorizer(permissionSets);
+  },
+);
+
+koa.on("error", (err, ctx) => {
+  setTimeout(() => {
+    // Ignored errors resulting from aborted requests
+    if (ctx?.req.aborted) return;
+
+    // Ignore client errors (e.g. malicious path)
+    if (err.status === 400) return;
+
+    throw err;
+  });
+});
+
+koa.use(async (ctx, next) => {
+  const configSnapshot = await localCache.getRevision();
+  ctx.state.configSnapshot = configSnapshot;
+  ctx.set("X-Config-Snapshot", configSnapshot);
+  ctx.set("GenieACS-Version", VERSION);
+  return next();
+});
+
+koa.use(
+  koaJwt({
+    secret: JWT_SECRET,
+    passthrough: true,
+    cookie: JWT_COOKIE,
+    isRevoked: async (ctx, token: TokenPayload) => {
+      if (token.authMethod === "local") {
+        return !localCache.getUsers(ctx.state.configSnapshot)[token.username];
+      }
+
+      return true;
+    },
+  }),
+);
+
+koa.use(async (ctx, next) => {
+  let roles: string[] = [];
+
+  if (ctx.state.user?.username) {
+    let user;
+    if (ctx.state.user.authMethod === "local") {
+      user = localCache.getUsers(ctx.state.configSnapshot)[
+        ctx.state.user.username
+      ];
+    } else {
+      throw new Error("Invalid auth method");
+    }
+    roles = user.roles || [];
+  }
+
+  ctx.state.authorizer = getAuthorizer(
+    ctx.state.configSnapshot,
+    JSON.stringify(roles),
+  );
+
+  return next();
+});
+
+router.post("/login", async (ctx) => {
+  if (!JWT_SECRET) {
+    ctx.status = 500;
+    ctx.body = "UI_JWT_SECRET is not set";
+    logger.error({ message: "UI_JWT_SECRET is not set" });
+    return;
+  }
+
+  const username = ctx.request.body.username;
+  const password = ctx.request.body.password;
+  const remember = ctx.request.body.remember;
+  const TWO_WEEKS_SECS = 1209600;
+  const ONE_DAY_SECS = 86400;
+
+  const log = {
+    message: "Log in",
+    context: ctx,
+    username: username,
+    method: null as string | null,
+  };
+
+  function success(authMethod: string): void {
+    log.method = authMethod;
+    const expiresIn = remember ? TWO_WEEKS_SECS : ONE_DAY_SECS;
+    const payload: TokenPayload = { username, authMethod };
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn });
+    ctx.cookies.set(JWT_COOKIE, token, {
+      sameSite: "lax",
+      maxAge: remember ? expiresIn * 1000 : undefined,
+    });
+    ctx.body = JSON.stringify(token);
+    logger.accessInfo(log);
+  }
+
+  function failure(): void {
+    ctx.status = 400;
+    ctx.body = "Incorrect username or password";
+    log.message += " failed";
+    logger.accessWarn(log);
+  }
+
+  if (await authLocal(ctx.state.configSnapshot, username, password))
+    return void success("local");
+
+  failure();
+});
+
+router.post("/logout", async (ctx) => {
+  ctx.cookies.set(JWT_COOKIE); // Delete cookie
+  ctx.body = "";
+
+  logger.accessInfo({
+    message: "Log out",
+    context: ctx,
+  });
+});
+
+koa.use(async (ctx, next) => {
+  if (ctx.request.type === "application/octet-stream")
+    ctx.disableBodyParser = true;
+
+  return next();
+});
+
+koa.use(koaBodyParser());
+router.use("/api", api.routes(), api.allowedMethods());
+
+router.get("/health", (ctx) => {
+  ctx.body = {
+    status: "OK",
+    timestamp: Date.now(),
+    configSnapshot: ctx.state.configSnapshot,
+    version: VERSION,
+  };
+});
+
+router.get("/init", async (ctx) => {
+  const status = await init.getStatus();
+  if (Object.keys(localCache.getUsers(ctx.state.configSnapshot)).length) {
+    if (!ctx.state.authorizer.hasAccess("users", 3)) status["users"] = false;
+    if (!ctx.state.authorizer.hasAccess("permissions", 3))
+      status["users"] = false;
+    if (!ctx.state.authorizer.hasAccess("config", 3)) {
+      status["filters"] = false;
+      status["device"] = false;
+      status["index"] = false;
+      status["overview"] = false;
+    }
+    if (!ctx.state.authorizer.hasAccess("presets", 3))
+      status["presets"] = false;
+    if (!ctx.state.authorizer.hasAccess("provisions", 3))
+      status["presets"] = false;
+  }
+
+  ctx.body = status;
+});
+
+router.post("/init", async (ctx) => {
+  const status = ctx.request.body;
+  if (Object.keys(localCache.getUsers(ctx.state.configSnapshot)).length) {
+    if (!ctx.state.authorizer.hasAccess("users", 3)) status["users"] = false;
+    if (!ctx.state.authorizer.hasAccess("permissions", 3))
+      status["users"] = false;
+    if (!ctx.state.authorizer.hasAccess("config", 3)) {
+      status["filters"] = false;
+      status["device"] = false;
+      status["index"] = false;
+      status["overview"] = false;
+    }
+    if (!ctx.state.authorizer.hasAccess("presets", 3))
+      status["presets"] = false;
+    if (!ctx.state.authorizer.hasAccess("provisions", 3))
+      status["presets"] = false;
+  }
+  await init.seed(status);
+  ctx.body = "";
+});
+
+function renderIndex(ctx: Koa.Context): void {
+  const ps: PermissionSet[] = ctx.state.authorizer.getPermissionSets();
+  const permissionSets = ps.map((p) =>
+    p.map((s) =>
+      Object.fromEntries(
+        Object.entries(s).map(([resource, { access, validate, filter }]) => [
+          resource,
+          { access, validate: validate.toString(), filter: filter.toString() },
+        ]),
+      ),
+    ),
+  );
+
+  if (
+    !Object.keys(localCache.getUsers(ctx.state.configSnapshot)).length &&
+    ctx.path !== "/wizard"
+  ) {
+    ctx.redirect("/wizard");
+    return;
+  }
+
+  let viewsUrl: string;
+  if (ctx.state.user) viewsUrl = `/views-bundle-${ctx.state.configSnapshot}.js`;
+  else viewsUrl = "data:application/javascript,export default {}";
+
+  ctx.body = `<!DOCTYPE html>
+  <html>
+    <head>
+      <title>GenieACS</title>
+      <link rel="shortcut icon" type="image/png" href="/${FAVICON_PNG}" />
+      <link rel="stylesheet" href="/${APP_CSS}">
+    </head>
+    <body class="h-full bg-stone-100">
+      <noscript>GenieACS UI requires JavaScript to work. Please enable JavaScript in your browser.</noscript>
+      <script type="importmap">
+        {
+          "imports": {
+            "views-bundle": "${viewsUrl}"
+          }
+        }
+      </script>
+      <script>
+        window.clockSkew = ${Date.now()} - Date.now();
+        if (Math.abs(window.clockSkew) > 5000)
+          console.warn("System and server clocks are out of sync by " + window.clockSkew + "ms");
+        window.clientConfig = ${JSON.stringify(localCache.getUiConfig(ctx.state.configSnapshot))};
+        window.configSnapshot = ${JSON.stringify(ctx.state.configSnapshot)};
+        window.genieacsVersion = ${JSON.stringify(VERSION)};
+        window.username = ${JSON.stringify(
+          ctx.state.user ? ctx.state.user.username : "",
+        )};
+        window.permissionSets = ${JSON.stringify(permissionSets)};
+      </script>
+      <script type="module" src="/${APP_JS}"></script>
+    </body>
+  </html>
+  `;
+}
+
+router.get("(.*)", (ctx, next) => {
+  const match = matchRoute(ctx.path);
+  if (!match) return next();
+  if (match.pathname === ctx.path) return renderIndex(ctx);
+  ctx.status = 301;
+  ctx.redirect(match.pathname);
+});
+
+router.get("/views-bundle-:revision.js", async (ctx) => {
+  if (!ctx.state.user) return void (ctx.status = 403);
+  try {
+    ctx.body = localCache.getViewsBundle(ctx.params.revision);
+    ctx.set({ "Content-Type": "application/javascript" });
+  } catch {
+    ctx.status = 404;
+  }
+});
+
+koa.use(
+  koaCompress({
+    gzip: {
+      flush: constants.Z_SYNC_FLUSH,
+    },
+    deflate: {
+      flush: constants.Z_SYNC_FLUSH,
+    },
+    br: {
+      flush: constants.BROTLI_OPERATION_FLUSH,
+      params: {
+        [constants.BROTLI_PARAM_QUALITY]: 5,
+      },
+    },
+  }),
+);
+
+koa.use(router.routes());
+koa.use(async (ctx, next) => {
+  await next();
+  if (ctx.method !== "HEAD" && ctx.method !== "GET") return;
+  if (ctx.body != null || ctx.status !== 404) return;
+  if (/(?:^|[\\/])\.\.(?:[\\/]|$)/.test(ctx.path)) return;
+
+  try {
+    await koaSend(ctx, ctx.path, { root: config.ROOT_DIR + "/public" });
+  } catch (err) {
+    if ((err as { status?: number }).status !== 404) throw err;
+  }
+});
+
+export const listener = koa.callback();

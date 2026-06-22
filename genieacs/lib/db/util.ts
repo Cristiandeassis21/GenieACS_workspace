@@ -1,0 +1,186 @@
+import Expression, { Value } from "../common/expression.ts";
+import Path from "../common/path.ts";
+import { encodeTag } from "../util.ts";
+
+// Optimize projection by removing overlaps
+// This can modify the object
+export function optimizeProjection(obj: { [path: string]: 1 }): {
+  [path: string]: 1;
+} {
+  if (obj[""]) return { "": obj[""] };
+
+  const keys = Object.keys(obj).sort();
+  if (keys.length <= 1) return obj;
+
+  for (let i = 1; i < keys.length; ++i) {
+    const a = keys[i - 1];
+    const b = keys[i];
+    if (b.startsWith(a)) {
+      if (b.charAt(a.length) === "." || b.charAt(a.length - 1) === ".") {
+        delete obj[b];
+        keys.splice(i--, 1);
+      }
+    }
+  }
+  return obj;
+}
+
+export function convertOldPrecondition(q: Record<string, unknown>): Expression {
+  function recursive(_query: Record<string, unknown>): Expression {
+    let res: Expression = new Expression.Literal(true);
+    for (const [k, v] of Object.entries(_query)) {
+      if (k[0] === "$") {
+        if (k === "$and") {
+          for (const vv of Object.values(v as Record<string, unknown>))
+            res = Expression.and(res, recursive(vv as Record<string, unknown>));
+        } else if (k === "$or") {
+          let or: Expression = new Expression.Literal(false);
+          for (const vv of Object.values(v as Record<string, unknown>))
+            or = Expression.or(or, recursive(vv as Record<string, unknown>));
+          res = Expression.and(res, or);
+        } else {
+          throw new Error(`Operator ${k} not supported`);
+        }
+      } else if (k === "_tags") {
+        if (typeof v === "object") {
+          if (Array.isArray(v)) throw new Error(`Invalid type`);
+          const vObj = v as Record<string, unknown>;
+          for (const [op, val] of Object.entries(vObj)) {
+            if (op === "$ne") {
+              if (typeof vObj["$ne"] !== "string")
+                throw new Error("Only string values are allowed for _tags");
+              res = Expression.and(
+                res,
+                new Expression.Unary(
+                  "IS NULL",
+                  new Expression.Parameter(
+                    Path.parse(`Tags.${encodeTag(val as string)}`),
+                  ),
+                ),
+              );
+            } else if (op === "$eq") {
+              if (typeof vObj["$eq"] !== "string")
+                throw new Error("Only string values are allowed for _tags");
+              res = Expression.and(
+                res,
+                new Expression.Unary(
+                  "IS NOT NULL",
+                  new Expression.Parameter(
+                    Path.parse(`Tags.${encodeTag(val as string)}`),
+                  ),
+                ),
+              );
+            } else {
+              throw new Error(`Invalid tag query`);
+            }
+          }
+        } else {
+          res = Expression.and(
+            res,
+            new Expression.Unary(
+              "IS NOT NULL",
+              new Expression.Parameter(
+                Path.parse(`Tags.${encodeTag(v as string)}`),
+              ),
+            ),
+          );
+        }
+      } else if (k.startsWith("Tags.")) {
+        let exists: boolean;
+        const vObj = v as Record<string, unknown>;
+        if (typeof v === "boolean") exists = v;
+        else if (vObj.hasOwnProperty("$eq")) exists = !!vObj["$eq"];
+        else if (vObj.hasOwnProperty("$ne")) exists = !vObj["$ne"];
+        else if (vObj.hasOwnProperty("$exists")) exists = !!vObj["$exists"];
+        else throw new Error(`Invalid tag query`);
+
+        res = Expression.and(
+          res,
+          new Expression.Unary(
+            exists ? "IS NOT NULL" : "IS NULL",
+            new Expression.Parameter(Path.parse(k)),
+          ),
+        );
+      } else if (typeof v === "object") {
+        if (Array.isArray(v)) throw new Error(`Invalid type`);
+        for (const [kk, vv] of Object.entries(v as Record<string, unknown>)) {
+          const lit = new Expression.Literal(vv as Value);
+          if (kk === "$eq") {
+            res = Expression.and(
+              res,
+              new Expression.Binary(
+                "=",
+                new Expression.Parameter(Path.parse(k)),
+                lit,
+              ),
+            );
+          } else if (kk === "$ne") {
+            const p = new Expression.Parameter(Path.parse(k));
+            res = Expression.and(
+              res,
+              Expression.or(
+                new Expression.Binary("<>", p, lit),
+                new Expression.Unary("IS NULL", p),
+              ),
+            );
+          } else if (kk === "$lt") {
+            res = Expression.and(
+              res,
+              new Expression.Binary(
+                "<",
+                new Expression.Parameter(Path.parse(k)),
+                lit,
+              ),
+            );
+          } else if (kk === "$lte") {
+            res = Expression.and(
+              res,
+              new Expression.Binary(
+                "<=",
+                new Expression.Parameter(Path.parse(k)),
+                lit,
+              ),
+            );
+          } else if (kk === "$gt") {
+            res = Expression.and(
+              res,
+              new Expression.Binary(
+                ">",
+                new Expression.Parameter(Path.parse(k)),
+                lit,
+              ),
+            );
+          } else if (kk === "$gte") {
+            res = Expression.and(
+              res,
+              new Expression.Binary(
+                ">=",
+                new Expression.Parameter(Path.parse(k)),
+                lit,
+              ),
+            );
+          } else {
+            throw new Error(`Operator ${kk} not supported`);
+          }
+          if (!["string", "number", "boolean"].includes(typeof vv))
+            throw new Error(`Invalid value for ${kk} operator`);
+        }
+      } else {
+        res = Expression.and(
+          res,
+          new Expression.Binary(
+            "=",
+            new Expression.Parameter(Path.parse(k)),
+            new Expression.Literal(v as Value),
+          ),
+        );
+      }
+    }
+    return res;
+  }
+
+  // empty filter
+  if (!Object.keys(q).length) return new Expression.Literal(true);
+
+  return recursive(q);
+}

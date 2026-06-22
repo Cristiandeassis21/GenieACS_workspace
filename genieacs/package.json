@@ -1,0 +1,82 @@
+{
+  "name": "genieacs",
+  "version": "1.3.0-dev",
+  "description": "A TR-069 Auto Configuration Server (ACS)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/genieacs/genieacs.git"
+  },
+  "homepage": "https://genieacs.com",
+  "keywords": [
+    "TR-069",
+    "CWMP",
+    "ACS"
+  ],
+  "author": {
+    "name": "GenieACS Inc.",
+    "url": "https://genieacs.com"
+  },
+  "license": "AGPL-3.0",
+  "private": true,
+  "bin": {
+    "genieacs-cwmp": "bin/genieacs-cwmp",
+    "genieacs-fs": "bin/genieacs-fs",
+    "genieacs-nbi": "bin/genieacs-nbi",
+    "genieacs-ui": "bin/genieacs-ui"
+  },
+  "dependencies": {
+    "@breejs/later": "^4.2.0",
+    "@koa/bodyparser": "^5.1.2",
+    "@koa/router": "^13.1.1",
+    "bson": "^4.7.2",
+    "espresso-iisojs": "^1.0.8",
+    "iconv-lite": "^0.6.3",
+    "ipaddr.js": "^2.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "koa": "^2.16.4",
+    "koa-compress": "^5.2.0",
+    "koa-jwt": "^4.0.3",
+    "koa-send": "^5.0.1",
+    "mongodb": "^4.16.0",
+    "seedrandom": "^3.0.5"
+  },
+  "devDependencies": {
+    "@codemirror/commands": "^6.10.2",
+    "@codemirror/lang-javascript": "^6.2.5",
+    "@codemirror/lang-yaml": "^6.1.2",
+    "@codemirror/language": "^6.12.2",
+    "@codemirror/state": "^6.5.4",
+    "@codemirror/view": "^6.39.16",
+    "@eslint/js": "^10.0.1",
+    "@tailwindcss/cli": "^4.2.1",
+    "@tailwindcss/forms": "^0.5.11",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/koa": "^2.15.0",
+    "@types/koa__router": "^12.0.5",
+    "@types/koa-compress": "^4.0.7",
+    "@types/koa-send": "^4.1.6",
+    "@types/later": "^1.2.9",
+    "@types/node": "^25.3.5",
+    "@types/seedrandom": "^3.0.8",
+    "@types/sql.js": "^1.4.11",
+    "@typescript/native-preview": "beta",
+    "esbuild": "^0.27.4",
+    "eslint": "^10.0.3",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.4.0",
+    "prettier": "^3.8.1",
+    "sql.js": "^1.14.1",
+    "svgo": "^3.3.3",
+    "tailwindcss": "^4.2.1",
+    "typescript-eslint": "^8.56.1",
+    "yaml": "^1.10.2"
+  },
+  "engines": {
+    "node": ">=12.13.0"
+  },
+  "scripts": {
+    "test": "esbuild build/test.ts --bundle --platform=node --target=node18 --packages=external | node && node --test --enable-source-maps test/*.js && rm test/*.js",
+    "lint": "esbuild build/lint.ts --bundle --platform=node --target=node16 --packages=external | node",
+    "build": "esbuild build/build.ts --bundle --platform=node --target=node12 --packages=external | node"
+  }
+}

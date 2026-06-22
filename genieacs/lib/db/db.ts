@@ -1,0 +1,59 @@
+import { MongoClient, Collection, GridFSBucket } from "mongodb";
+import { get } from "../config.ts";
+import * as MongoTypes from "./types.ts";
+
+export let filesBucket: GridFSBucket;
+
+export const collections = {
+  devices: null as unknown as Collection<MongoTypes.Device>,
+  presets: null as unknown as Collection<MongoTypes.Preset>,
+  objects: null as unknown as Collection<MongoTypes.Object>,
+  provisions: null as unknown as Collection<MongoTypes.Provision>,
+  virtualParameters: null as unknown as Collection<MongoTypes.VirtualParameter>,
+  faults: null as unknown as Collection<MongoTypes.Fault>,
+  tasks: null as unknown as Collection<MongoTypes.Task>,
+  files: null as unknown as Collection<MongoTypes.File>,
+  operations: null as unknown as Collection<MongoTypes.Operation>,
+  permissions: null as unknown as Collection<MongoTypes.Permission>,
+  users: null as unknown as Collection<MongoTypes.User>,
+  config: null as unknown as Collection<MongoTypes.Config>,
+  cache: null as unknown as Collection<MongoTypes.Cache>,
+  locks: null as unknown as Collection<MongoTypes.Lock>,
+  views: null as unknown as Collection<MongoTypes.View>,
+};
+
+let clientPromise: Promise<MongoClient>;
+
+export async function connect(): Promise<void> {
+  clientPromise = MongoClient.connect("" + get("MONGODB_CONNECTION_URL"));
+
+  const client = await clientPromise;
+  const db = client.db();
+
+  collections.tasks = db.collection("tasks");
+  collections.devices = db.collection("devices");
+  collections.presets = db.collection("presets");
+  collections.objects = db.collection("objects");
+  collections.files = db.collection("fs.files");
+  collections.provisions = db.collection("provisions");
+  collections.virtualParameters = db.collection("virtualParameters");
+  collections.faults = db.collection("faults");
+  collections.operations = db.collection("operations");
+  collections.permissions = db.collection("permissions");
+  collections.users = db.collection("users");
+  collections.config = db.collection("config");
+  collections.cache = db.collection("cache");
+  collections.locks = db.collection("locks");
+  collections.views = db.collection("views");
+  filesBucket = new GridFSBucket(db);
+
+  await Promise.all([
+    collections.tasks.createIndex({ device: 1, timestamp: 1 }),
+    collections.cache.createIndex({ expire: 1 }, { expireAfterSeconds: 0 }),
+    collections.locks.createIndex({ expire: 1 }, { expireAfterSeconds: 0 }),
+  ]);
+}
+
+export async function disconnect(): Promise<void> {
+  if (clientPromise != null) await (await clientPromise).close();
+}

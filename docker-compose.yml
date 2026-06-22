@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo:4.4
+    container_name: genieacs-mongo
+    restart: always
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - genieacs-net
+
+  cwmp:
+    build:
+      context: ./genieacs
+    container_name: genieacs-cwmp
+    command: ["node", "dist/bin/genieacs-cwmp"]
+    restart: always
+    ports:
+      - "7547:7547"
+    environment:
+      - GENIEACS_MONGODB_CONNECTION_URL=${GENIEACS_MONGODB_CONNECTION_URL}
+    depends_on:
+      - mongo
+    networks:
+      - genieacs-net
+
+  nbi:
+    build:
+      context: ./genieacs
+    container_name: genieacs-nbi
+    command: ["node", "dist/bin/genieacs-nbi"]
+    restart: always
+    ports:
+      - "7557:7557"
+    environment:
+      - GENIEACS_MONGODB_CONNECTION_URL=${GENIEACS_MONGODB_CONNECTION_URL}
+    depends_on:
+      - mongo
+    networks:
+      - genieacs-net
+
+  fs:
+    build:
+      context: ./genieacs
+    container_name: genieacs-fs
+    command: ["node", "dist/bin/genieacs-fs"]
+    restart: always
+    ports:
+      - "7567:7567"
+    volumes:
+      - fs-data:/var/genieacs/fs
+    environment:
+      - GENIEACS_MONGODB_CONNECTION_URL=${GENIEACS_MONGODB_CONNECTION_URL}
+      - GENIEACS_FS_DATA_DIR=/var/genieacs/fs
+    depends_on:
+      - mongo
+    networks:
+      - genieacs-net
+
+  ui:
+    build:
+      context: ./genieacs
+    container_name: genieacs-ui
+    command: ["node", "dist/bin/genieacs-ui"]
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - GENIEACS_MONGODB_CONNECTION_URL=${GENIEACS_MONGODB_CONNECTION_URL}
+      - GENIEACS_UI_JWT_SECRET=${GENIEACS_UI_JWT_SECRET}
+    depends_on:
+      - mongo
+    networks:
+      - genieacs-net
+
+  sim:
+    build:
+      context: ./genieacs-sim
+    container_name: genieacs-sim
+    restart: always
+    # Apontando o simulador para conectar no nosso servidor cwmp recém-criado
+    command: ["node", "genieacs-sim", "-u", "http://cwmp:7547/"]
+    depends_on:
+      - cwmp
+    networks:
+      - genieacs-net
+
+volumes:
+  mongo-data:
+  fs-data:
+
+networks:
+  genieacs-net:
+    driver: bridge

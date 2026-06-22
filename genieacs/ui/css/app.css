@@ -1,0 +1,195 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/forms";
+
+@source inline("h-full bg-stone-100");
+@source "../../ui/**/*.{ts,tsx}";
+
+@theme {
+  --font-sans:
+    "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-mono:
+    "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+
+  /* Reset default color palette to match v3 exclusive palette */
+  --color-*: initial;
+
+  --color-black: #000;
+  --color-white: #fff;
+
+  --color-cyan-50: #edfdfe;
+  --color-cyan-100: #d3f7fa;
+  --color-cyan-200: #aceef5;
+  --color-cyan-300: #72e0ee;
+  --color-cyan-400: #31c8df;
+  --color-cyan-500: #15abc5;
+  --color-cyan-600: #1589a5;
+  --color-cyan-700: #186e86;
+  --color-cyan-800: #1c5a6e;
+  --color-cyan-900: #1c4b5d;
+
+  --color-stone-50: #faf8f8;
+  --color-stone-100: #f5f2f0;
+  --color-stone-200: #e7e4e2;
+  --color-stone-300: #d6d3d1;
+  --color-stone-400: #a8a29e;
+  --color-stone-500: #78716c;
+  --color-stone-600: #57534e;
+  --color-stone-700: #44403c;
+  --color-stone-800: #292524;
+  --color-stone-900: #1c1917;
+
+  --color-red-50: #fdf3f3;
+  --color-red-100: #fce4e4;
+  --color-red-200: #facece;
+  --color-red-300: #f5acac;
+  --color-red-400: #ee7b7b;
+  --color-red-500: #e25151;
+  --color-red-600: #ce3434;
+  --color-red-700: #ad2828;
+  --color-red-800: #902424;
+  --color-red-900: #782424;
+
+  --color-emerald-50: #edfcf5;
+  --color-emerald-100: #d4f7e5;
+  --color-emerald-200: #adedd0;
+  --color-emerald-300: #77deb5;
+  --color-emerald-400: #40c796;
+  --color-emerald-500: #1dac7d;
+  --color-emerald-600: #108b65;
+  --color-emerald-700: #0d6f53;
+  --color-emerald-800: #0d5843;
+  --color-emerald-900: #0b4938;
+
+  --color-yellow-50: #fcfbea;
+  --color-yellow-100: #faf5c7;
+  --color-yellow-200: #f5e993;
+  --color-yellow-300: #efd755;
+  --color-yellow-400: #e9c226;
+  --color-yellow-500: #d9aa19;
+  --color-yellow-600: #bb8513;
+  --color-yellow-700: #956013;
+  --color-yellow-800: #7c4c17;
+  --color-yellow-900: #6a3f19;
+
+  --color-blue-50: #f0f6fe;
+  --color-blue-100: #deeafb;
+  --color-blue-200: #c4dcf9;
+  --color-blue-300: #9bc5f5;
+  --color-blue-400: #6ca6ee;
+  --color-blue-500: #4985e8;
+  --color-blue-600: #3469dc;
+  --color-blue-700: #2b55ca;
+  --color-blue-800: #2946a4;
+  --color-blue-900: #263e82;
+
+  --background-image-stripes: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 10px,
+    rgba(0, 0, 0, 0.02) 10px,
+    rgba(0, 0, 0, 0.02) 20px
+  );
+}
+
+@supports (font-variation-settings: normal) {
+  @font-face {
+    font-family: "Roboto Mono";
+    src: url("RobotoMono.woff2") format("woff2-variations");
+    font-weight: 100 700;
+    font-style: normal;
+    unicode-range:
+      U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+      U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+      U+FEFF, U+FFFD;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: "Inter";
+    font-weight: 100 900;
+    font-display: swap;
+    font-style: normal;
+    font-named-instance: "Regular";
+    src: url("InterVariable.woff2") format("woff2-variations");
+    unicode-range:
+      U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+      U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+      U+FEFF, U+FFFD;
+  }
+
+  @font-face {
+    font-family: "Inter";
+    font-weight: 100 900;
+    font-display: swap;
+    font-style: italic;
+    font-named-instance: "Italic";
+    src: url("InterVariable-Italic.woff2") format("woff2-variations");
+    unicode-range:
+      U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+      U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+      U+FEFF, U+FFFD;
+  }
+}
+
+.device-page {
+  h1 {
+    @apply text-xl font-medium text-stone-900 mb-5;
+  }
+
+  h2 {
+    @apply text-lg font-semibold text-stone-900 mb-5 mt-8;
+  }
+
+  h3 {
+    @apply text-lg font-medium text-stone-900 mb-5 mt-8;
+  }
+
+  span.inform {
+    @apply flex gap-3;
+    & > button {
+      @apply -my-1.5;
+    }
+  }
+}
+
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-cyan-500;
+  }
+}
+
+/* Legacy component styles — remove when legacy mithril components are dropped */
+@scope (.legacy-host) {
+  .loading {
+    opacity: 0.6;
+  }
+
+  .loading-overlay {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .loading-overlay::after {
+    content: "";
+    width: 48px;
+    height: 48px;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJ4TWlkWU1pZCI+PHBhdGggZD0iTTEwIDUwYTQwIDQwIDAgMDA4MCAwIDQwIDQyIDAgMDEtODAgMCIgZmlsbD0iI2IxMmQ1YyIgLz48L3N2Zz4=");
+    animation: _legacy-spin 1s linear infinite;
+  }
+
+  @keyframes _legacy-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+}
