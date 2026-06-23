@@ -10,6 +10,7 @@ const device = node.attributes.device.get();
 const deviceId = device["DeviceID.ID"];
 const taskCmd = new Signal.State(null);
 const queryString = new Signal.State("");
+const pageIndex = new Signal.State(0);
 
 const allKeys = [];
 for (const key of Object.keys(device)) {
@@ -100,7 +101,10 @@ const explorer = new Signal.Computed(() => {
       })
     : flatKeys;
 
-  const sorted = filtered.sort().slice(0, 100);
+  const itemsPerPage = 100;
+  const currentPage = pageIndex.get();
+  const sorted = filtered.sort().slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
+  
   return (
     <>
       <div class="overflow-hidden">
@@ -112,11 +116,27 @@ const explorer = new Signal.Computed(() => {
           </table>
         </div>
       </div>
-      <div class="text-stone-700 px-4 py-3 flex justify-between items-end">
+      <div class="text-stone-700 px-4 py-3 flex justify-between items-center bg-stone-50 border-t border-stone-200">
         <span class="text-xs">
-          Displaying <span class="font-medium">{sorted.length}</span> of{" "}
+          Displaying <span class="font-medium">{filtered.length === 0 ? 0 : currentPage * itemsPerPage + 1}</span> to <span class="font-medium">{Math.min((currentPage + 1) * itemsPerPage, filtered.length)}</span> of{" "}
           <span class="font-medium">{filtered.length}</span> parameters
         </span>
+        <div class="space-x-4">
+          <button 
+            disabled={currentPage === 0} 
+            onclick={() => pageIndex.set(currentPage - 1)}
+            class="text-cyan-700 hover:text-cyan-900 text-sm font-medium disabled:text-stone-400"
+          >
+            Prev
+          </button>
+          <button 
+            disabled={(currentPage + 1) * itemsPerPage >= filtered.length} 
+            onclick={() => pageIndex.set(currentPage + 1)}
+            class="text-cyan-700 hover:text-cyan-900 text-sm font-medium disabled:text-stone-400"
+          >
+            Next
+          </button>
+        </div>
         <a
           href={`/api/devices/${encodeURIComponent(deviceId)}.csv`}
           download=""
@@ -141,7 +161,10 @@ return (
         oninput={(e) => {
           clearTimeout(debounceTimer);
           debounceTimer = setTimeout(
-            () => queryString.set(e.target.value),
+            () => {
+              queryString.set(e.target.value);
+              pageIndex.set(0);
+            },
             500,
           );
         }}
