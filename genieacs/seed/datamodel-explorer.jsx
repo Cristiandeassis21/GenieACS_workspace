@@ -10,6 +10,7 @@ const device = node.attributes.device.get();
 const deviceId = device["DeviceID.ID"];
 const taskCmd = new Signal.State(null);
 const queryString = new Signal.State("");
+const hideUndefined = new Signal.State(false);
 const pageIndex = new Signal.State(0);
 
 const allKeys = [];
@@ -82,6 +83,7 @@ const renderRow = (row) => {
 
 const explorer = new Signal.Computed(() => {
   const query = queryString.get();
+  const hide = hideUndefined.get();
   const regExp =
     query &&
     new RegExp(
@@ -93,13 +95,18 @@ const explorer = new Signal.Computed(() => {
       "i",
     );
 
-  const filtered = regExp
-    ? flatKeys.filter((k) => {
-        const value = device[k];
-        if (!device[`${k}:object`] && !value) return false;
-        return regExp.test(value ? `${k} ${value}` : k);
-      })
-    : flatKeys;
+  let filtered = flatKeys;
+  
+  if (hide) {
+    filtered = filtered.filter((k) => device[`${k}:object`] || device[k]);
+  }
+
+  if (regExp) {
+    filtered = filtered.filter((k) => {
+      const value = device[k];
+      return regExp.test(value ? `${k} ${value}` : k);
+    });
+  }
 
   const itemsPerPage = 100;
   const currentPage = pageIndex.get();
@@ -171,6 +178,18 @@ return (
         placeholder="Search parameters"
         class="appearance-none border-0 block w-full px-4 py-3 border-stone-300 placeholder-stone-500 text-stone-900 focus:ring-cyan-500 text-sm rounded-t-lg font-mono focus:ring-2"
       />
+      <label class="flex items-center px-4 py-2 text-sm text-stone-700 cursor-pointer bg-stone-50 border-b border-stone-200">
+        <input 
+          type="checkbox" 
+          class="mr-2"
+          checked={hideUndefined}
+          onchange={(e) => {
+            hideUndefined.set(e.target.checked);
+            pageIndex.set(0);
+          }}
+        />
+        Hide undefined parameters
+      </label>
       {explorer}
     </div>
   </>

@@ -58,6 +58,7 @@ interface Attrs {
 
 const component: ClosureComponent<Attrs> = () => {
   let queryString: string;
+  let hideUndefined = false;
   const formQueryString = debounce((args: string[]) => {
     queryString = args[args.length - 1];
     m.redraw();
@@ -75,14 +76,31 @@ const component: ClosureComponent<Attrs> = () => {
       }
 
       const search = m(
-        "input.appearance-none border-0 block w-full px-4 py-3 border-stone-300 placeholder-stone-500 text-stone-900 focus:ring-cyan-500 text-sm rounded-t-lg font-mono focus:ring-2",
-        {
-          type: "text",
-          placeholder: "Search parameters",
-          oninput: (e: { target: HTMLInputElement }) => {
-            formQueryString(e.target.value);
+        "div",
+        m(
+          "input.appearance-none border-0 block w-full px-4 py-3 border-stone-300 placeholder-stone-500 text-stone-900 focus:ring-cyan-500 text-sm rounded-t-lg font-mono focus:ring-2",
+          {
+            type: "text",
+            placeholder: "Search parameters",
+            oninput: (e: { target: HTMLInputElement }) => {
+              formQueryString(e.target.value);
+            },
           },
-        },
+        ),
+        m(
+          "label.flex.items-center.px-4.py-2.text-sm.text-stone-700.cursor-pointer.bg-stone-50.border-b.border-stone-200",
+          [
+            m("input.mr-2", {
+              type: "checkbox",
+              checked: hideUndefined,
+              onchange: (e: { target: HTMLInputElement }) => {
+                hideUndefined = e.target.checked;
+                m.redraw();
+              },
+            }),
+            "Hide undefined parameters",
+          ]
+        )
       );
 
       const instanceRegex = /\.[0-9]+$/;
@@ -98,6 +116,7 @@ const component: ClosureComponent<Attrs> = () => {
       for (const keys of allParams) {
         let c = 0;
         for (const k of keys) {
+          if (hideUndefined && k.value === undefined) continue;
           const str = k.value
             ? `${k.path.toString()} ${k.value}`
             : k.path.toString();
