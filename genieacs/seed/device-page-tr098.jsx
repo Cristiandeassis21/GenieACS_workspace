@@ -35,37 +35,28 @@ const hostIp = connectionUrl ? new URL(connectionUrl).hostname : null;
 
 // Device parameters to display
 const parameters = [
-  { label: "Serial number", param: "DeviceID.SerialNumber" },
-  { label: "Product class", param: "DeviceID.ProductClass" },
-  { label: "OUI", param: "DeviceID.OUI" },
-  { label: "Manufacturer", param: "DeviceID.Manufacturer" },
-  {
-    label: "Hardware version",
-    param: "InternetGatewayDevice.DeviceInfo.HardwareVersion",
-  },
-  {
-    label: "Software version",
-    param: "InternetGatewayDevice.DeviceInfo.SoftwareVersion",
-  },
-  {
-    label: "MAC",
-    param:
-      "InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANIPConnection.1.MACAddress",
-  },
-  {
-    label: "IP",
-    param:
-      "InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANIPConnection.1.ExternalIPAddress",
-  },
-  {
-    label: "WLAN SSID",
-    param: "InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID",
-  },
-  {
-    label: "WLAN passphrase",
-    param:
-      "InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.PreSharedKey.1.KeyPassphrase",
-  },
+  // Geral e Hardware
+  { label: "Fabricante", param: "InternetGatewayDevice.DeviceInfo.Manufacturer" },
+  { label: "Modelo", param: "InternetGatewayDevice.DeviceInfo.ModelName" },
+  { label: "Firmware", param: "InternetGatewayDevice.DeviceInfo.SoftwareVersion" },
+  { label: "Serial Number", param: "DeviceID.SerialNumber" },
+  { label: "Uptime", param: "InternetGatewayDevice.DeviceInfo.UpTime" },
+  
+  // WAN / Conectividade
+  { label: "WAN IP", param: "InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANPPPConnection.1.ExternalIPAddress" },
+  { label: "Status PPPoE", param: "InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANPPPConnection.1.ConnectionStatus" },
+  { label: "Usuário PPPoE", param: "InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANPPPConnection.1.Username" },
+  { label: "Uptime PPPoE", param: "InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANPPPConnection.1.Uptime" },
+  { label: "DNS", param: "InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANPPPConnection.1.DNSServers" },
+
+  // Wi-Fi
+  { label: "SSID", param: "InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID" },
+  { label: "Senha", param: "InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.KeyPassphrase" },
+  { label: "Canal", param: "InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.Channel" },
+
+  // Óptica
+  { label: "Sinal Óptico (Rx)", param: "InternetGatewayDevice.WANDevice.1.WANDSLInterfaceConfig.OltRxPower" },
+  { label: "Sinal Óptico (Tx)", param: "InternetGatewayDevice.WANDevice.1.WANDSLInterfaceConfig.OltTxPower" },
 ];
 
 const hostsRoot = "InternetGatewayDevice.LANDevice.1.Hosts.Host";
@@ -259,8 +250,7 @@ return (
           </tbody>
         </table>
       </div>
-      <h2>Data model</h2>
-      <datamodel-explorer device={device} />
+
       <div class="space-x-3 mt-4">
         {[
           {

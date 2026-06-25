@@ -34,34 +34,33 @@ const hostIp = connectionUrl ? new URL(connectionUrl).hostname : null;
 
 // Device parameters to display
 const parameters = [
-  { label: "Serial number", param: "DeviceID.SerialNumber" },
-  { label: "Product class", param: "DeviceID.ProductClass" },
-  { label: "OUI", param: "DeviceID.OUI" },
-  { label: "Manufacturer", param: "DeviceID.Manufacturer" },
-  {
-    label: "Hardware version",
-    param: "Device.DeviceInfo.HardwareVersion",
-  },
-  {
-    label: "Software version",
-    param: "Device.DeviceInfo.SoftwareVersion",
-  },
-  {
-    label: "MAC",
-    param: "Device.Ethernet.Interface.1.MACAddress",
-  },
-  {
-    label: "IP",
-    param: "Device.IP.Interface.1.IPv4Address.1.IPAddress",
-  },
-  {
-    label: "WLAN SSID",
-    param: "Device.WiFi.SSID.1.SSID",
-  },
-  {
-    label: "WLAN passphrase",
-    param: "Device.WiFi.AccessPoint.1.Security.KeyPassphrase",
-  },
+  // Geral e Hardware
+  { label: "Fabricante", param: "Device.DeviceInfo.Manufacturer" },
+  { label: "Modelo", param: "Device.DeviceInfo.ModelName" },
+  { label: "Firmware", param: "Device.DeviceInfo.SoftwareVersion" },
+  { label: "Serial Number", param: "DeviceID.SerialNumber" },
+  { label: "Uptime", param: "Device.DeviceInfo.UpTime" },
+  
+  // WAN / Conectividade
+  { label: "WAN IP", param: "Device.IP.Interface.1.IPv4Address.1.IPAddress" },
+  { label: "Status PPPoE", param: "Device.PPP.Interface.1.ConnectionStatus" },
+  { label: "Usuário PPPoE", param: "Device.PPP.Interface.1.Username" },
+  { label: "Uptime PPPoE", param: "Device.PPP.Interface.1.LastChange" },
+  { label: "DNS 1", param: "Device.DNS.Client.Server.1.DNSServer" },
+
+  // Wi-Fi 2.4GHz
+  { label: "SSID (2.4GHz)", param: "Device.WiFi.SSID.1.SSID" },
+  { label: "Senha (2.4GHz)", param: "Device.WiFi.AccessPoint.1.Security.KeyPassphrase" },
+  { label: "Canal (2.4GHz)", param: "Device.WiFi.Radio.1.Channel" },
+
+  // Wi-Fi 5GHz
+  { label: "SSID (5GHz)", param: "Device.WiFi.SSID.5.SSID" },
+  { label: "Senha (5GHz)", param: "Device.WiFi.AccessPoint.5.Security.KeyPassphrase" },
+  { label: "Canal (5GHz)", param: "Device.WiFi.Radio.2.Channel" },
+
+  // Óptica
+  { label: "Sinal Óptico (Rx)", param: "Device.Optical.Interface.1.OpticalSignalLevel" },
+  { label: "Sinal Óptico (Tx)", param: "Device.Optical.Interface.1.TransmitOpticalLevel" },
 ];
 
 const hostsRoot = "Device.Hosts.Host";
@@ -255,8 +254,7 @@ return (
           </tbody>
         </table>
       </div>
-      <h2>Data model</h2>
-      <datamodel-explorer device={device} />
+
       <div class="space-x-3 mt-4">
         {[
           {
