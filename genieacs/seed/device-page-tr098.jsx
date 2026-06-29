@@ -250,7 +250,8 @@ return (
           </tbody>
         </table>
       </div>
-
+      <h2>Data model</h2>
+      <datamodel-explorer device={device} />
       <div class="space-x-3 mt-4">
         {[
           {

@@ -2,28 +2,31 @@ const now = Date.now();
 
 let productClass = declare("DeviceID.ProductClass", {value: 1}).value[0];
 
-if (productClass === "MR70X") {
-    declare("Device.DeviceInfo.*", {path: now});
-    declare("Device.WiFi.SSID.*.SSID", {path: now});
-    declare("Device.Hosts.Host.*.HostName", {path: now});
-    declare("Device.Hosts.Host.*.IPAddress", {path: now});
-    declare("Device.Hosts.Host.*.MACAddress", {path: now});
-} else if (productClass === "XX530v") {
-    declare("Device.DeviceInfo.HardwareVersion", {path: now});
-    declare("Device.DeviceInfo.SoftwareVersion", {path: now});
-    declare("Device.DeviceInfo.SerialNumber", {path: now});
-    declare("Device.Optical.*", {path: now});
-    
-    declare("Device.WiFi.SSID.1.SSID", {path: now});
-    declare("Device.WiFi.SSID.5.SSID", {path: now});
-    declare("Device.WiFi.AccessPoint.1.Security.KeyPassphrase", {path: now});
-    declare("Device.WiFi.AccessPoint.5.Security.KeyPassphrase", {path: now});
+// 1. Informações Gerais e Hardware
+declare("InternetGatewayDevice.DeviceInfo.*", {path: now});
+declare("Device.DeviceInfo.*", {path: now});
 
-    declare("Device.IP.Interface.1.IPv4Address.1.IPAddress", {path: now});
-    declare("Device.IP.Interface.2.IPv4Address.1.IPAddress", {path: now});
-    
-    declare("Device.Hosts.Host.*.*", {path: now});
-} else {
-    declare("Device.DeviceInfo.*", {path: now});
-    declare("Device.WiFi.SSID.*.SSID", {path: now});
-}
+// 2. Diagnóstico de WAN (Conectividade)
+declare("InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANPPPConnection.*.*", {path: now});
+declare("InternetGatewayDevice.WANDevice.*.WANConnectionDevice.*.WANIPConnection.*.*", {path: now});
+declare("Device.IP.Interface.*.*", {path: now});
+declare("Device.IP.Interface.*.IPv4Address.*.*", {path: now});
+declare("Device.PPP.Interface.*.*", {path: now});
+declare("Device.DNS.Client.Server.*.*", {path: now});
+
+// 3. Diagnóstico Wi-Fi (2.4GHz e 5GHz)
+declare("InternetGatewayDevice.LANDevice.*.WLANConfiguration.*.*", {path: now});
+declare("Device.WiFi.SSID.*.*", {path: now});
+declare("Device.WiFi.Radio.*.*", {path: now});
+declare("Device.WiFi.AccessPoint.*.*", {path: now});
+declare("Device.WiFi.AccessPoint.*.Security.*", {path: now});
+
+// 4. Dispositivos Conectados (LAN Hosts e RSSI)
+declare("InternetGatewayDevice.LANDevice.*.Hosts.Host.*.*", {path: now});
+declare("InternetGatewayDevice.LANDevice.*.WLANConfiguration.*.AssociatedDevice.*.*", {path: now});
+declare("Device.Hosts.Host.*.*", {path: now});
+declare("Device.WiFi.AccessPoint.*.AssociatedDevice.*.*", {path: now});
+
+// 5. Diagnóstico Óptico (ONTs)
+declare("InternetGatewayDevice.WANDevice.*.WANDSLInterfaceConfig.*", {path: now});
+declare("Device.Optical.Interface.*.*", {path: now});

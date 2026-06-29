@@ -33,61 +33,105 @@ const connectionUrl = device["Device.ManagementServer.ConnectionRequestURL"];
 const hostIp = connectionUrl ? new URL(connectionUrl).hostname : null;
 
 // Device parameters to display
-const parameters = [
-  // Geral e Hardware
-  { label: "Fabricante", param: "Device.DeviceInfo.Manufacturer" },
-  { label: "Modelo", param: "Device.DeviceInfo.ModelName" },
-  { label: "Firmware", param: "Device.DeviceInfo.SoftwareVersion" },
-  { label: "Serial Number", param: "DeviceID.SerialNumber" },
-  { label: "Uptime", param: "Device.DeviceInfo.UpTime" },
-  
-  // WAN / Conectividade
-  { label: "WAN IP", param: "Device.IP.Interface.1.IPv4Address.1.IPAddress" },
-  { label: "Status PPPoE", param: "Device.PPP.Interface.1.ConnectionStatus" },
-  { label: "Usuário PPPoE", param: "Device.PPP.Interface.1.Username" },
-  { label: "Uptime PPPoE", param: "Device.PPP.Interface.1.LastChange" },
-  { label: "DNS 1", param: "Device.DNS.Client.Server.1.DNSServer" },
-
-  // Wi-Fi 2.4GHz
-  { label: "SSID (2.4GHz)", param: "Device.WiFi.SSID.1.SSID" },
-  { label: "Senha (2.4GHz)", param: "Device.WiFi.AccessPoint.1.Security.KeyPassphrase" },
-  { label: "Canal (2.4GHz)", param: "Device.WiFi.Radio.1.Channel" },
-
-  // Wi-Fi 5GHz
-  { label: "SSID (5GHz)", param: "Device.WiFi.SSID.5.SSID" },
-  { label: "Senha (5GHz)", param: "Device.WiFi.AccessPoint.5.Security.KeyPassphrase" },
-  { label: "Canal (5GHz)", param: "Device.WiFi.Radio.2.Channel" },
-
-  // Óptica
-  { label: "Sinal Óptico (Rx)", param: "Device.Optical.Interface.1.OpticalSignalLevel" },
-  { label: "Sinal Óptico (Tx)", param: "Device.Optical.Interface.1.TransmitOpticalLevel" },
+const paramBlocks = [
+  {
+    title: "🌐 Internet",
+    parameters: [
+      { label: "WAN Interface Name", param: "Device.IP.Interface.1.Name" },
+      { label: "MAC Address", param: "Device.Ethernet.Link.1.MACAddress" },
+      { label: "IP Address", param: "Device.IP.Interface.1.IPv4Address.1.IPAddress" },
+      { label: "Subnet Mask", param: "Device.IP.Interface.1.IPv4Address.1.SubnetMask" },
+      { label: "Default Gateway", param: "Device.Routing.Router.1.IPv4Forwarding.1.GatewayIPAddress" },
+      { label: "Connection Type", param: "Device.PPP.Interface.1.ConnectionStatus" },
+    ]
+  },
+  {
+    title: "📶 Wireless (Main)",
+    parameters: [
+      { label: "Network Name (SSID) 2.4GHz", param: "Device.WiFi.SSID.1.SSID" },
+      { label: "Wireless Radio 2.4GHz", param: "Device.WiFi.Radio.1.Enable" },
+      { label: "Channel Width 2.4GHz", param: "Device.WiFi.Radio.1.OperatingChannelBandwidth" },
+      { label: "Channel 2.4GHz", param: "Device.WiFi.Radio.1.Channel" },
+      { label: "Network Name (SSID) 5GHz", param: "Device.WiFi.SSID.5.SSID" },
+      { label: "Wireless Radio 5GHz", param: "Device.WiFi.Radio.2.Enable" },
+      { label: "Channel Width 5GHz", param: "Device.WiFi.Radio.2.OperatingChannelBandwidth" },
+      { label: "Channel 5GHz", param: "Device.WiFi.Radio.2.Channel" }
+    ]
+  },
+  {
+    title: "💻 LAN (IPv4 & IPv6)",
+    parameters: [
+      { label: "LAN MAC", param: "Device.Ethernet.Link.1.MACAddress" },
+      { label: "LAN IPv4 Address", param: "Device.IP.Interface.1.IPv4Address.1.IPAddress" },
+      { label: "LAN IPv4 Subnet Mask", param: "Device.IP.Interface.1.IPv4Address.1.SubnetMask" },
+      { label: "LAN IPv6 Address", param: "Device.IP.Interface.7.IPv6Address.1.IPAddress" },
+      { label: "LAN IPv6 Prefix", param: "Device.IP.Interface.7.IPv6Prefix.1.Prefix" },
+    ]
+  },
+  {
+    title: "🕵️ Guest Network",
+    parameters: [
+      { label: "Network Name (SSID)", param: "Device.WiFi.SSID.2.SSID" },
+      { label: "Hide SSID", param: "Device.WiFi.AccessPoint.2.SSIDAdvertisementEnabled" },
+      { label: "Wireless Radio", param: "Device.WiFi.SSID.2.Enable" },
+      { label: "Isolation", param: "Device.WiFi.AccessPoint.2.IsolationEnable" },
+    ]
+  },
+  {
+    title: "📈 Performance",
+    parameters: [
+      { label: "System Up Time", param: "Device.DeviceInfo.UpTime" },
+      { label: "CPU Load", param: "Device.DeviceInfo.ProcessStatus.CPUUsage" },
+      { label: "Memory Free", param: "Device.DeviceInfo.MemoryStatus.Free" },
+      { label: "Memory Total", param: "Device.DeviceInfo.MemoryStatus.Total" },
+    ]
+  },
+  {
+    title: "🔌 XPON",
+    parameters: [
+      { label: "TX Power", param: "Device.Optical.Interface.1.TransmitOpticalLevel" },
+      { label: "RX Power", param: "Device.Optical.Interface.1.OpticalSignalLevel" }
+    ]
+  }
 ];
 
 const hostsRoot = "Device.Hosts.Host";
 const hostsColumns = [
   { label: "Host name", param: "HostName" },
-  { label: "IP", param: "IPAddress" },
-  { label: "MAC", param: "PhysAddress" },
+  { label: "MAC Address", param: "PhysAddress" },
+  { label: "IP Address", param: "IPAddress" },
+  { label: "Connection Type", param: "Layer1Interface" }
 ];
 
 // Parameters to refresh when summoning the device
 const summonParams = [
-  ...parameters.map((p) => p.param).filter((p) => !p.startsWith("DeviceID.")),
-  ...hostsColumns.map((c) => `${hostsRoot}.*.${c.param}`),
+  ...paramBlocks.flatMap(b => b.parameters.map(p => p.param)).filter(p => !p.startsWith("DeviceID.")),
+  ...hostsColumns.map(c => `${hostsRoot}.*.${c.param}`),
 ];
 
-const parameterRows = parameters
-  .filter(({ param }) => device[param])
-  .map(({ label, param }) => (
+const cards = paramBlocks.map((block) => {
+  const rows = block.parameters.map(({ label, param }) => (
     <tr class="border-b border-stone-200">
-      <th class="text-sm font-medium text-stone-500 text-left px-6 py-3">
-        {label}
-      </th>
+      <th class="text-sm font-medium text-stone-500 text-left px-6 py-3">{label}</th>
       <td class="text-sm text-stone-900 px-6 py-3">
         <parameter device={device} param={param} />
       </td>
     </tr>
   ));
+    
+  if (rows.length === 0) return null;
+
+  return (
+    <div class="bg-white shadow rounded-lg overflow-hidden flex-1 min-w-[300px]">
+      <div class="bg-stone-50 px-6 py-4 border-b border-stone-200">
+        <h3 class="text-lg leading-6 font-medium text-stone-900">{block.title}</h3>
+      </div>
+      <table class="min-w-full divide-y divide-stone-200">
+        <tbody>{rows}</tbody>
+      </table>
+    </div>
+  );
+});
 
 const FIVE_MINUTES = 5 * 60 * 1000;
 const ONE_DAY = 24 * 60 * 60 * 1000;
@@ -178,44 +222,85 @@ return (
         <span class="font-medium text-stone-500">Pinging {hostIp}: </span>
         {pingDisplay}
       </div>
-      <table class="table-auto bg-white shadow rounded-lg divide-y divide-stone-200 w-max">
-        <tbody>
-          <tr class="border-b border-stone-200">
-            <th class="text-sm font-medium text-stone-500 text-left px-6 py-3">
-              Last inform
-            </th>
-            <td class="text-sm text-stone-900 px-6 py-3">
-              <span class="inform">
-                <parameter device={device} param="Events.Inform" />
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="inline"
-                  width="1em"
-                  height="1em"
-                  style="margin: 0 0.2em 0.2em"
-                >
-                  <circle
-                    class="stroke-stone-200 stroke-1"
-                    cx="0.5em"
-                    cy="0.5em"
-                    r="0.4em"
-                    fill={statusColor}
-                  />
-                </svg>
-                {onlineStatus}
-                <summon-button deviceId={deviceId} params={summonParams} />
-              </span>
-            </td>
-          </tr>
-          {parameterRows}
-        </tbody>
-      </table>
+      <div class="mb-6 bg-white shadow rounded-lg overflow-hidden w-max">
+        <table class="table-auto divide-y divide-stone-200">
+          <tbody>
+            <tr class="border-b border-stone-200">
+              <th class="text-sm font-medium text-stone-500 text-left px-6 py-3">
+                Last inform
+              </th>
+              <td class="text-sm text-stone-900 px-6 py-3">
+                <span class="inform">
+                  <parameter device={device} param="Events.Inform" />
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="inline"
+                    width="1em"
+                    height="1em"
+                    style="margin: 0 0.2em 0.2em"
+                  >
+                    <circle
+                      class="stroke-stone-200 stroke-1"
+                      cx="0.5em"
+                      cy="0.5em"
+                      r="0.4em"
+                      fill={statusColor}
+                    />
+                  </svg>
+                  {onlineStatus}
+                  <summon-button deviceId={deviceId} params={summonParams} />
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="flex flex-wrap gap-6 mb-6 items-start">
+        {cards}
+      </div>
       <h2>LAN Hosts</h2>
-      <instance-table root={hostsRoot} device={device}>
-        {hostsColumns.map((c) => (
-          <param label={c.label} param={c.param} />
-        ))}
-      </instance-table>
+      <div class="shadow overflow-hidden rounded-lg w-max mb-6">
+        <table class="divide-y divide-stone-200">
+          <thead class="bg-stone-50">
+            <tr>
+              <th class="py-3.5 text-left text-sm font-semibold text-stone-500 pl-6 pr-3">Host name</th>
+              <th class="py-3.5 text-left text-sm font-semibold text-stone-500 px-3">MAC Address</th>
+              <th class="py-3.5 text-left text-sm font-semibold text-stone-500 px-3">IP Address</th>
+              <th class="py-3.5 text-left text-sm font-semibold text-stone-500 pl-3 pr-6">Connection Type</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-stone-200">
+            {[...new Set(
+              Object.keys(device)
+                .filter(k => k.startsWith(`${hostsRoot}.`) && !k.includes(":"))
+                .map(k => k.slice(0, k.indexOf(".", hostsRoot.length + 1) === -1 ? k.length : k.indexOf(".", hostsRoot.length + 1)))
+            )].map(inst => {
+              const layer1 = device[`${inst}.Layer1Interface`] || "";
+              let connType = "Desconhecido";
+              if (layer1.includes("WiFi")) connType = "Wi-Fi";
+              else if (layer1.includes("Ethernet")) connType = "Cabo de Rede";
+              else if (layer1) connType = layer1;
+              return (
+                <tr>
+                  <td class="whitespace-nowrap py-4 text-sm text-stone-900 pl-6 pr-3">
+                    <parameter device={device} param={`${inst}.HostName`} />
+                  </td>
+                  <td class="whitespace-nowrap py-4 text-sm text-stone-900 px-3">
+                    <parameter device={device} param={`${inst}.PhysAddress`} />
+                  </td>
+                  <td class="whitespace-nowrap py-4 text-sm text-stone-900 px-3">
+                    <parameter device={device} param={`${inst}.IPAddress`} />
+                  </td>
+                  <td class="whitespace-nowrap py-4 text-sm text-stone-900 pl-3 pr-6">
+                    {connType}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
       <do-fetch
         arg={{
           resource: "faults",
@@ -254,7 +339,8 @@ return (
           </tbody>
         </table>
       </div>
-
+      <h2>Data model</h2>
+      <datamodel-explorer device={device} />
       <div class="space-x-3 mt-4">
         {[
           {
